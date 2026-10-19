@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Last 1% Survival</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:white;font-family:Arial,sans-serif;text-align:center}
+header{padding:18px}
+h1{margin:5px;color:#5cecff;font-size:32px}
+p{color:#b6c5df}
+.stats{display:flex;justify-content:space-around;margin:10px auto;max-width:380px}
+.stat{background:#1a2340;padding:12px;border-radius:12px;min-width:95px}
+.stat small{display:block;color:#9baac7;margin-bottom:6px}
+.stat strong{font-size:22px}
+#game{display:block;width:min(94vw,380px);height:auto;margin:12px auto;background:#10182c;border:2px solid #33476c;border-radius:14px;touch-action:none}
+button{background:#5cecff;color:#07101d;border:0;border-radius:12px;padding:15px 24px;font-size:17px;font-weight:bold;margin:6px}
+.controls{display:flex;justify-content:center;gap:30px}
+#message{font-size:18px;font-weight:bold;min-height:26px}
+</style>
+</head>
+<body>
+<header>
+<h1>LAST 1%</h1>
+<p>DODGE. COLLECT. SURVIVE.</p>
+</header>
+<div class="stats">
+<div class="stat"><small>TIME</small><strong id="time">30</strong></div>
+<div class="stat"><small>SCORE</small><strong id="score">0</strong></div>
+<div class="stat"><small>BEST</small><strong id="best">0</strong></div>
+</div>
+<canvas id="game" width="360" height="500"></canvas>
+<div id="message">Ready for the challenge?</div>
+<button id="start">START GAME</button>
+<div class="controls">
+<button id="left">◀ LEFT</button>
+<button id="right">RIGHT ▶</button>
+</div>
+<p>Red blocks se bacho. Blue energy collect karo!</p>
+<script>
+const c=document.getElementById('game'),x=c.getContext('2d');
+const $=id=>document.getElementById(id);
+let best=0;
+try{best=Number(localStorage.getItem('last1best'))||0}catch(e){}
+$('best').textContent=best;
+let player,blocks,orbs,score,time,running=false,dir=0,last=0,spawn=0,orbspawn=0,frame=0;
+function reset(){
+player={x:168,y:425,w:24,h:28};
+blocks=[];orbs=[];score=0;time=30;spawn=0;orbspawn=0;
+$('score').textContent=0;$('time').textContent='30.0';
+}
+function start(){
+reset();running=true;$('message').textContent='Survive for 30 seconds!';
+$('start').textContent='RESTART';last=performance.now();
+requestAnimationFrame(loop);
+}
+function finish(win){
+running=false;dir=0;
+if(score>best){best=score;$('best').textContent=best;
+try{localStorage.setItem('last1best',best)}catch(e){}}
+$('message').textContent=win?'YOU SURVIVED! Score: '+score:'GAME OVER! Score: '+score;
+$('start').textContent='PLAY AGAIN';
+}
+function draw(){
+x.clearRect(0,0,360,500);
+x.strokeStyle='#202d49';
+for(let a=0;a<360;a+=30){x.beginPath();x.moveTo(a,0);x.lineTo(a,500);x.stroke()}
+for(let a=(frame*1.5)%30;a<500;a+=30){x.beginPath();x.moveTo(0,a);x.lineTo(360,a);x.stroke()}
+blocks.forEach(b=>{
+x.shadowBlur=12;x.shadowColor='#ff426b';x.fillStyle='#ff426b';
+x.fillRect(b.x,b.y,b.w,b.h);x.shadowBlur=0;
+});
+orbs.forEach(o=>{
+x.shadowBlur=15;x.shadowColor='#5cecff';x.fillStyle='#5cecff';
+x.beginPath();x.arc(o.x,o.y,7,0,Math.PI*2);x.fill();x.shadowBlur=0;
+});
+x.fillStyle='#5cecff';x.shadowBlur=18;x.shadowColor='#5cecff';
+x.fillRect(player.x,player.y,player.w,player.h);x.shadowBlur=0;
+x.fillStyle='#10182c';x.fillRect(player.x+5,player.y+7,4,4);
+x.fillRect(player.x+15,player.y+7,4,4);
+}
+function loop(now){
+if(!running)return;
+let dt=Math.min((now-last)/1000,.04);last=now;frame++;
+time=Math.max(0,time-dt);
+player.x=Math.max(5,Math.min(331,player.x+dir*250*dt));
+spawn+=dt;orbspawn+=dt;
+if(spawn>.65){spawn=0;let w=18+Math.random()*23;
+blocks.push({x:5+Math.random()*(350-w),y:-30,w,h:w,s:150+Math.random()*80+score*.1})}
+if(orbspawn>1.8){orbspawn=0;orbs.push({x:15+Math.random()*330,y:-10,s:120})}
+blocks.forEach(b=>b.y+=b.s*dt);
+orbs.forEach(o=>o.y+=o.s*dt);
+blocks=blocks.filter(b=>b.y<520);
+orbs=orbs.filter(o=>o.y<520);
+for(const b of blocks){
+if(player.x<b.x+b.w&&player.x+player.w>b.x&&player.y<b.y+b.h&&player.y+player.h>b.y){
+draw();finish(false);return;
+}}
+for(let i=orbs.length-1;i>=0;i--){
+let o=orbs[i];
+if(Math.abs(player.x+12-o.x)<19&&Math.abs(player.y+14-o.y)<20){
+score+=25;orbs.splice(i,1);
+}}
+score+=Math.floor(dt*10);
+$('score').textContent=score;$('time').textContent=time.toFixed(1);
+draw();
+if(time<=0){finish(true);draw();return}
+requestAnimationFrame(loop);
+}
+function hold(id,d){
+let b=$(id);
+b.addEventListener('pointerdown',e=>{e.preventDefault();dir=d});
+b.addEventListener('pointerup',()=>{if(dir===d)dir=0});
+b.addEventListener('pointercancel',()=>{if(dir===d)dir=0});
+b.addEventListener('pointerleave',()=>{if(dir===d)dir=0});
+}
+hold('left',-1);hold('right',1);
+document.addEventListener('keydown',e=>{
+if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')dir=-1;
+if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')dir=1;
+});
+document.addEventListener('keyup',e=>{
+if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key))dir=0;
+});
+$('start').addEventListener('click',start);
+reset();draw();
+</script>
+  
+<!-- Daily Challenges + Weekly Champion -->
+<style>
+#challengeBtn {
+  position:fixed;top:12px;right:12px;z-index:9999;
+  background:#ffca28;color:#222;border:0;border-radius:10px;
+  padding:10px;font-weight:bold;font-size:14px;
+}
+#challengePanel {
+  display:none;position:fixed;top:58px;right:12px;z-index:9999;
+  width:270px;max-width:85vw;background:#171923;color:white;
+  border:2px solid #ffca28;border-radius:14px;padding:14px;
+  font-family:Arial,sans-serif;box-shadow:0 4px 20px #0008;
+}
+#challengePanel h3 {color:#ffca28;margin:8px 0;}
+#challengePanel p {background:#292d3e;padding:9px;border-radius:8px;}
+#challengePanel button {padding:8px;border:0;border-radius:7px;margin-top:6px;}
+</style>
+
+<button id="challengeBtn">🏆 Challenges</button>
+<div id="challengePanel">
+  <h3>🎯 Daily Challenges</h3>
+  <p>⏱️ Survive for 30 seconds</p>
+  <p>🔵 Collect energy orbs</p>
+  <p>⭐ Beat your best score</p>
+  <hr>
+  <h3>👑 Weekly Champion</h3>
+  <p>🥇 Rank 1 — Legendary Crown</p>
+  <p>🥈 Top 10 — Golden Frame</p>
+  <p>🥉 Top 100 — Silver Frame</p>
+  <p id="challengeBest">⭐ Your best score: 0</p>
+  <button id="challengeClose">Close ✖</button>
+</div>
+
+<script>
+(function(){
+  const btn=document.getElementById('challengeBtn');
+  const panel=document.getElementById('challengePanel');
+  btn.onclick=function(){
+    panel.style.display=panel.style.display==='block'?'none':'block';
+    document.getElementById('challengeBest').textContent=
+      '⭐ Your best score: '+(localStorage.getItem('last1best')||'0');
+  };
+  document.getElementById('challengeClose').onclick=function(){
+    panel.style.display='none';
+  };
+})();
+</script>
+  <section id="online-leaderboard">
+  <h2>🏆 Online Leaderboard</h2>
+  <p id="leaderboard-status">Loading scores...</p>
+  <ol id="leaderboard-list"></ol>
+</section>
+
+<script>
+(async function () {
+  const SUPABASE_URL = "https://tvswqgklarojvbwjumxq.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_nMCK1WQNaZx2qXjPX2sJiQ_QRvK51ok";
+
+  const status = document.getElementById("leaderboard-status");
+  const list = document.getElementById("leaderboard-list");
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/player_scores?select=player_name,score&order=score.desc&limit=10`,
+      {
+        headers: {
+          apikey: SUPABASE_KEY
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Could not load scores (" + response.status + ")");
+    }
+
+    const scores = await response.json();
+    list.replaceChildren();
+
+    scores.forEach((player) => {
+      const item = document.createElement("li");
+      item.textContent =
+        `${player.player_name} — ${player.score} points`;
+      list.appendChild(item);
+    });
+
+    status.textContent = scores.length
+      ? "Top 10 players"
+      : "No scores submitted yet.";
+  } catch (error) {
+    status.textContent = "Leaderboard could not load: " + error.message;
+    console.error(error);
+  }
+})();
+</script>
+</body>
+</html>
