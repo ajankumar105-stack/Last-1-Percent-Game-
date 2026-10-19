@@ -127,5 +127,54 @@ if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key))dir=0;
 $('start').addEventListener('click',start);
 reset();draw();
 </script>
+  
+<!-- Daily Challenges + Weekly Champion -->
+<style>
+#challengeBtn {
+  position:fixed;top:12px;right:12px;z-index:9999;
+  background:#ffca28;color:#222;border:0;border-radius:10px;
+  padding:10px;font-weight:bold;font-size:14px;
+}
+#challengePanel {
+  display:none;position:fixed;top:58px;right:12px;z-index:9999;
+  width:270px;max-width:85vw;background:#171923;color:white;
+  border:2px solid #ffca28;border-radius:14px;padding:14px;
+  font-family:Arial,sans-serif;box-shadow:0 4px 20px #0008;
+}
+#challengePanel h3 {color:#ffca28;margin:8px 0;}
+#challengePanel p {background:#292d3e;padding:9px;border-radius:8px;}
+#challengePanel button {padding:8px;border:0;border-radius:7px;margin-top:6px;}
+</style>
+
+<button id="challengeBtn">🏆 Challenges</button>
+<div id="challengePanel">
+  <h3>🎯 Daily Challenges</h3>
+  <p>⏱️ Survive for 30 seconds</p>
+  <p>🔵 Collect energy orbs</p>
+  <p>⭐ Beat your best score</p>
+  <hr>
+  <h3>👑 Weekly Champion</h3>
+  <p>🥇 Rank 1 — Legendary Crown</p>
+  <p>🥈 Top 10 — Golden Frame</p>
+  <p>🥉 Top 100 — Silver Frame</p>
+  <p id="challengeBest">⭐ Your best score: 0</p>
+  <button id="challengeClose">Close ✖</button>
+</div>
+
+<script>
+(function(){
+  const btn=document.getElementById('challengeBtn');
+  const panel=document.getElementById('challengePanel');
+  btn.onclick=function(){
+    panel.style.display=panel.style.display==='block'?'none':'block';
+    document.getElementById('challengeBest').textContent=
+      '⭐ Your best score: '+(localStorage.getItem('bestScore')||'0');
+  };
+  document.getElementById('challengeClose').onclick=function(){
+    panel.style.display='none';
+  };
+})();
+</script>
+  
 </body>
 </html>
